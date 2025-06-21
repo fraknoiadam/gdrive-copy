@@ -1,9 +1,9 @@
 import { GoogleDriveAPI } from './api/googleDrive.js';
-import { UI } from './ui/interface.js';
+import { UI } from './ui/interface';
 import { FolderManager } from './services/folderManager.js';
-import { CopyManager } from './services/copyManager.js';
-import { StatusManager } from './services/statusManager.js';
-import { LLMService } from './services/llmService.js';
+import { CopyManager } from './services/copyManager';
+import { StatusManager } from './services/statusManager';
+import { LLMService } from './services/llmService';
 import type { FolderItem, SelectionState, SelectedItem } from './types/index.js';
 
 class App {
@@ -217,8 +217,11 @@ class App {
   private updateSelectionCount(): void {
     if (!this.folderManager || !this.folderStructure) return;
     
-    const selectedItems = this.folderManager.getSelectedItems(this.folderStructure);
-    this.ui.updateSelectionCount(selectedItems.length);
+    const selectedItemCount = this.folderManager.getSelectedItemCount(this.folderStructure);
+    this.ui.updateSelectionCount(selectedItemCount);
+    
+    // Debug logging (can be removed in production)
+    this.folderManager.debugSelectionCount(this.folderStructure);
   }
 
   private selectAll(): void {
@@ -275,25 +278,40 @@ class App {
     this.ui.showProgressContainer();
 
     try {
-      let copiedCount = 0;
-      const totalItems = selectedItems.length;
+      // Get the actual number of items that will be copied (not just selected nodes)
+      const totalItemsToProcess = this.folderManager.getSelectedItemCount(this.folderStructure);
 
       // Create a mapping for folder hierarchy
       const createdFolders = new Map<string, string>(); // originalId -> newId
       createdFolders.set('root', destinationFolderId);
-      console.log(`Starting copy of ${totalItems} items to folder ID: ${destinationFolderId}. Selected items:`, selectedItems);
+      
+      console.log(`Starting copy of ${selectedItems.length} selected nodes (${totalItemsToProcess} total items) to folder ID: ${destinationFolderId}`);
+      console.log('Selected items to process:', selectedItems.map(item => ({
+        name: item.item.name,
+        type: item.item.type,
+        selectionType: item.selectionType,
+        includeChildren: item.includeChildren,
+        childrenCount: item.item.children?.length || 0
+      })));
+      
+      // Process each selected item and track actual items processed
+      const progressTracker = {
+        totalItems: totalItemsToProcess,
+        processedItems: 0,
+        updateProgress: (increment: number = 1) => {
+          progressTracker.processedItems += increment;
+          const progress = (progressTracker.processedItems / progressTracker.totalItems) * 100;
+          console.log(`Progress: ${progress.toFixed(2)}% (${progressTracker.processedItems}/${progressTracker.totalItems} items)`);
+          this.ui.updateProgress(progress, `Processed ${progressTracker.processedItems} of ${progressTracker.totalItems} items`);
+        }
+      };
       
       for (const selectedItem of selectedItems) {
         console.log(`Processing item: ${selectedItem.item.name} (${selectedItem.item.id}) at path: ${selectedItem.item.path}`);
-        await this.processSelectedItem(selectedItem, createdFolders);
-        copiedCount++;
-        
-        const progress = (copiedCount / totalItems) * 100;
-        console.log(`Progress: ${progress.toFixed(2)}%`);
-        this.ui.updateProgress(progress, `Processed ${copiedCount} of ${totalItems} items`);
+        await this.processSelectedItemWithProgress(selectedItem, createdFolders, progressTracker);
       }
 
-      this.statusManager.show(`Successfully processed ${copiedCount} items`, 'success');
+      this.statusManager.show(`Successfully processed ${progressTracker.processedItems} items`, 'success');
       this.ui.updateProgress(100, 'Copy completed successfully!');
     } catch (error) {
       console.error('Copy operation failed:', error);
@@ -301,7 +319,11 @@ class App {
     }
   }
 
-  private async processSelectedItem(selectedItem: SelectedItem, createdFolders: Map<string, string>): Promise<void> {
+  private async processSelectedItemWithProgress(
+    selectedItem: SelectedItem, 
+    createdFolders: Map<string, string>, 
+    progressTracker: { updateProgress: (increment?: number) => void }
+  ): Promise<void> {
     const { item, includeChildren } = selectedItem;
     
     try {
@@ -312,20 +334,17 @@ class App {
         const newFolderId = await this.copyManager.createFolder(item.name, parentId);
         createdFolders.set(item.id, newFolderId);
         console.log(`Created folder "${item.name}" with ID: ${newFolderId}`);
+        progressTracker.updateProgress(1); // Count the folder itself
         
-        // If we should include children, process them
+        // If we should include children, process them all
         if (includeChildren && item.children) {
           for (const child of item.children) {
-            // Check if this child is also selected, if not, copy it anyway because parent was selected with 'all'
-            const childSelection = this.folderManager.getSelectionState(child.id);
-            if (childSelection === 'none') {
-              // Force include since parent was selected with 'all'
-              await this.processSelectedItem({
-                item: child,
-                selectionType: 'all',
-                includeChildren: true
-              }, createdFolders);
-            }
+            // When parent is selected with 'all', copy all children regardless of their individual state
+            await this.processSelectedItemWithProgress({
+              item: child,
+              selectionType: 'all',
+              includeChildren: true
+            }, createdFolders, progressTracker);
           }
         }
       } else {
@@ -334,6 +353,7 @@ class App {
         console.log(`Copying file "${item.name}" to parent ${parentId}`);
         await this.copyManager.copyFile(item.id, parentId);
         console.log(`Copied file "${item.name}" successfully`);
+        progressTracker.updateProgress(1); // Count the file
       }
     } catch (error) {
       console.error(`Failed to process item "${item.name}":`, error);

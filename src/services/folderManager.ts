@@ -37,6 +37,7 @@ export class FolderManager {
       // For folders with children: none -> all -> folder-only -> none
       switch (currentState) {
         case 'none':
+        case 'partial':
           newState = 'all';
           break;
         case 'all':
@@ -52,6 +53,7 @@ export class FolderManager {
       // For files or empty folders: none -> all -> none
       switch (currentState) {
         case 'none':
+        case 'partial':
           newState = 'all';
           break;
         case 'all':
@@ -62,6 +64,7 @@ export class FolderManager {
       }
     }
 
+    console.log(`Cycling selection for "${item.name}": ${currentState} -> ${newState}`);
     this.selectionStates.set(itemId, newState);
     this._updateChildrenStates(item, newState);
     this._updateParentStates(itemId, structure);
@@ -93,21 +96,52 @@ export class FolderManager {
 
     const allSelected = childrenStates.every(state => state === 'all');
     const noneSelected = childrenStates.every(state => state === 'none');
-    const parentFolderState = this.selectionStates.get(parent.id);
+    const parentFolderState = this.selectionStates.get(parent.id) || 'none';
 
-    if (allSelected && (parentFolderState === 'folder-only' || parentFolderState === 'all')) {
-      this.selectionStates.set(parent.id, 'all');
-    } else if (noneSelected && parentFolderState !== 'folder-only') {
-      this.selectionStates.set(parent.id, 'none');
-    } else {
-      // Some children selected, some not
-      const hasAnySelection = childrenStates.some(state => state !== 'none');
-      if (hasAnySelection || parentFolderState === 'folder-only') {
-        this.selectionStates.set(parent.id, 'partial');
+    // Check if all children are effectively fully selected (including partial states that cover all content)
+    const allEffectivelySelected = childrenStates.every(state => {
+      if (state === 'all') return true;
+      if (state === 'partial') {
+        // For partial state, check if it effectively covers all children
+        const child = parent.children.find(c => this.selectionStates.get(c.id) === 'partial');
+        if (child) {
+          return this._isFullySelectedRecursive(child);
+        }
       }
+      return false;
+    });
+
+    if (allSelected || allEffectivelySelected) {
+      // All children are selected - parent should be 'all' unless it was explicitly set to folder-only
+      this.selectionStates.set(parent.id, 'all');
+    } else if (noneSelected) {
+      // No children selected
+      if (parentFolderState === 'folder-only') {
+        // Keep folder-only if it was explicitly set
+        this.selectionStates.set(parent.id, 'folder-only');
+      } else {
+        this.selectionStates.set(parent.id, 'none');
+      }
+    } else {
+      // Some children selected, some not - this is partial
+      this.selectionStates.set(parent.id, 'partial');
     }
 
     this._updateParentStates(parent.id, structure);
+  }
+
+  private _isFullySelectedRecursive(item: FolderItem): boolean {
+    const state = this.selectionStates.get(item.id) || 'none';
+    
+    if (state === 'all') return true;
+    if (state === 'none' || state === 'folder-only') return false;
+    
+    // For partial state, check if all children are effectively selected
+    if (state === 'partial' && item.children) {
+      return item.children.every(child => this._isFullySelectedRecursive(child));
+    }
+    
+    return false;
   }
 
   private _findItemById(id: string, items: FolderItem[]): FolderItem | null {
@@ -143,32 +177,74 @@ export class FolderManager {
     return selected;
   }
 
+  // New method to count actual items that will be copied
+  getSelectedItemCount(structure: FolderItem[]): number {
+    return this._countSelectedItems(structure);
+  }
+
+  private _countSelectedItems(items: FolderItem[]): number {
+    let count = 0;
+    
+    for (const item of items) {
+      const state = this.selectionStates.get(item.id) || 'none';
+      
+      if (state === 'all') {
+        // Count this item and all its children recursively
+        count += this._countAllItems(item);
+      } else if (state === 'folder-only') {
+        // Count only the folder itself
+        count += 1;
+      } else if (state === 'partial' && item.children) {
+        // For partial selection, count selected children recursively
+        count += this._countSelectedItems(item.children);
+      }
+      // 'none' state contributes 0 to the count
+    }
+    
+    return count;
+  }
+
+  private _countAllItems(item: FolderItem): number {
+    let count = 1; // Count the item itself
+    
+    if (item.children) {
+      for (const child of item.children) {
+        count += this._countAllItems(child);
+      }
+    }
+    
+    return count;
+  }
+
   private _collectSelectedItems(items: FolderItem[], selected: SelectedItem[]): void {
     for (const item of items) {
       const state = this.selectionStates.get(item.id);
       
-      if (state === 'all' || state === 'folder-only') {
+      if (state === 'all') {
+        // When a folder is selected with 'all', include it and skip its children
+        // (children will be processed as part of the parent)
         selected.push({
           item: item,
           selectionType: state,
-          includeChildren: state === 'all'
+          includeChildren: true
         });
-      } else if (state === 'partial' && item.children) {
-        // For partial selection, add the folder if needed and continue with children
-        const hasSelectedChildren = item.children.some(child => 
-          ['all', 'folder-only', 'partial'].includes(this.selectionStates.get(child.id) || 'none')
-        );
-        
-        if (hasSelectedChildren) {
-          selected.push({
-            item: item,
-            selectionType: 'folder-only',
-            includeChildren: false
-          });
+        // Don't recurse into children - they're handled by the parent
+      } else if (state === 'folder-only') {
+        selected.push({
+          item: item,
+          selectionType: state,
+          includeChildren: false
+        });
+        // Still need to check children in case some are individually selected
+        if (item.children) {
+          this._collectSelectedItems(item.children, selected);
         }
-        
+      } else if (state === 'partial' && item.children) {
+        // For partial selection, don't include the folder itself unless it has explicit folder-only selection
+        // Just recurse into children to find individually selected items
         this._collectSelectedItems(item.children, selected);
       }
+      // For 'none' state, skip this item and don't recurse
     }
   }
 
@@ -212,5 +288,33 @@ export class FolderManager {
       }
       return a.name.localeCompare(b.name);
     });
+  }
+
+  // Test method to verify counting logic (can be removed in production)
+  debugSelectionCount(structure: FolderItem[]): void {
+    console.log('=== Selection Count Debug ===');
+    const selectedItems = this.getSelectedItems(structure);
+    const actualCount = this.getSelectedItemCount(structure);
+    
+    console.log(`Selected items (nodes): ${selectedItems.length}`);
+    console.log(`Actual items to copy: ${actualCount}`);
+    
+    console.log('Selection details:');
+    selectedItems.forEach(item => {
+      const childrenInfo = item.item.children ? ` (${item.item.children.length} children)` : '';
+      console.log(`- ${item.item.name} [${item.item.type}] (${item.selectionType}, includeChildren: ${item.includeChildren})${childrenInfo}`);
+    });
+    
+    console.log('Full selection state map:');
+    this.selectionStates.forEach((state, id) => {
+      if (state !== 'none') {
+        const item = this._findItemById(id, structure);
+        if (item) {
+          console.log(`  ${item.name} [${item.type}]: ${state}`);
+        }
+      }
+    });
+    
+    console.log('=== End Debug ===');
   }
 }
