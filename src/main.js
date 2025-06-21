@@ -20,7 +20,41 @@ class App {
 
   init() {
     this.setupEventListeners();
-    this.api.loadAPI();
+    // Check if we're returning from OAuth redirect
+    this.checkAuthenticationOnLoad();
+  }
+
+  async checkAuthenticationOnLoad() {
+    // Check if there's an access token in the URL (from OAuth redirect)
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get('access_token');
+    
+    if (accessToken) {
+      // We have a token, try to complete authentication
+      const clientId = localStorage.getItem('google_client_id');
+      const apiKey = localStorage.getItem('google_api_key');
+      
+      if (clientId && apiKey) {
+        try {
+          await this.api.loadAPI();
+          await this.api.initialize(clientId, apiKey);
+          const success = await this.api.authenticate(); // Will use token from URL
+          
+          if (success) {
+            this.isAuthenticated = true;
+            this.statusManager.show('Successfully authenticated with Google Drive', 'success');
+            this.ui.enableLoadButton();
+            
+            // Restore form values
+            document.getElementById('clientId').value = clientId;
+            document.getElementById('apiKey').value = apiKey;
+          }
+        } catch (error) {
+          this.statusManager.show(`Authentication failed: ${error.message}`, 'error');
+        }
+      }
+    }
   }
 
   setupEventListeners() {
@@ -39,6 +73,7 @@ class App {
   }
 
   async authenticate() {
+    console.log("Authenticating with Google Drive...");
     const clientId = document.getElementById('clientId').value;
     const apiKey = document.getElementById('apiKey').value;
 
@@ -47,13 +82,17 @@ class App {
       return;
     }
 
+    // Store credentials for after redirect
+    localStorage.setItem('google_client_id', clientId);
+    localStorage.setItem('google_api_key', apiKey);
+
     try {
+      await this.api.loadAPI();
       await this.api.initialize(clientId, apiKey);
-      await this.api.authenticate();
-      this.isAuthenticated = true;
       
-      this.statusManager.show('Successfully authenticated with Google Drive', 'success');
-      this.ui.enableLoadButton();
+      // This will redirect to Google OAuth, so we won't reach the lines below
+      await this.api.authenticate();
+      
     } catch (error) {
       this.statusManager.show(`Authentication failed: ${error.message}`, 'error');
     }

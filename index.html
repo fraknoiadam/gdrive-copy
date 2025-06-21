@@ -27,7 +27,7 @@
                         <label for="apiKey">API Key</label>
                         <input type="text" id="apiKey" placeholder="Enter your Google API Key" required>
                     </div>
-                    
+
                     <div class="instructions">
                         <details>
                             <summary>How to get your Google API credentials</summary>
@@ -35,10 +35,13 @@
                                 <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
                                 <li>Create a new project or select an existing one</li>
                                 <li>Enable the Google Drive API</li>
-                                <li>Create OAuth 2.0 Client ID credentials</li>
-                                <li>Add <code>http://localhost:5173</code> to authorized JavaScript origins</li>
+                                <li>Create OAuth 2.0 Client ID credentials (Web application)</li>
+                                <li>Add your domain (e.g., <code>http://localhost:5173</code>) to authorized JavaScript origins</li>
+                                <li>Add your domain (e.g., <code>http://localhost:5173</code>) to authorized redirect URIs</li>
+                                <li>Create an API Key and restrict it to Google Drive API</li>
                                 <li>Copy the Client ID and API Key here</li>
                             </ol>
+                            <p><strong>Note:</strong> This app now uses the new Google Identity Services for authentication.</p>
                         </details>
                     </div>
                 </form>
