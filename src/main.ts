@@ -284,7 +284,7 @@ class App {
       console.log(`Starting copy of ${totalItems} items to folder ID: ${destinationFolderId}. Selected items:`, selectedItems);
       
       for (const selectedItem of selectedItems) {
-        console.log(`Processing item: ${selectedItem.item.name} (${selectedItem.item.id})`);
+        console.log(`Processing item: ${selectedItem.item.name} (${selectedItem.item.id}) at path: ${selectedItem.item.path}`);
         await this.processSelectedItem(selectedItem, createdFolders);
         copiedCount++;
         
@@ -296,6 +296,7 @@ class App {
       this.statusManager.show(`Successfully processed ${copiedCount} items`, 'success');
       this.ui.updateProgress(100, 'Copy completed successfully!');
     } catch (error) {
+      console.error('Copy operation failed:', error);
       this.statusManager.show(`Copy failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
     }
   }
@@ -303,42 +304,103 @@ class App {
   private async processSelectedItem(selectedItem: SelectedItem, createdFolders: Map<string, string>): Promise<void> {
     const { item, includeChildren } = selectedItem;
     
-    if (item.type === 'folder') {
-      // Create the folder in the destination
-      const parentId = this.findParentId(item, createdFolders);
-      const newFolderId = await this.copyManager.createFolder(item.name, parentId);
-      createdFolders.set(item.id, newFolderId);
-      
-      // If we should include children, process them
-      if (includeChildren && item.children) {
-        for (const child of item.children) {
-          // Check if this child is also selected, if not, copy it anyway because parent was selected with 'all'
-          const childSelection = this.folderManager.getSelectionState(child.id);
-          if (childSelection === 'none') {
-            // Force include since parent was selected with 'all'
-            await this.processSelectedItem({
-              item: child,
-              selectionType: 'all',
-              includeChildren: true
-            }, createdFolders);
+    try {
+      if (item.type === 'folder') {
+        // Create the folder in the destination
+        const parentId = await this.findOrCreateParentId(item, createdFolders);
+        console.log(`Creating folder "${item.name}" in parent ${parentId}`);
+        const newFolderId = await this.copyManager.createFolder(item.name, parentId);
+        createdFolders.set(item.id, newFolderId);
+        console.log(`Created folder "${item.name}" with ID: ${newFolderId}`);
+        
+        // If we should include children, process them
+        if (includeChildren && item.children) {
+          for (const child of item.children) {
+            // Check if this child is also selected, if not, copy it anyway because parent was selected with 'all'
+            const childSelection = this.folderManager.getSelectionState(child.id);
+            if (childSelection === 'none') {
+              // Force include since parent was selected with 'all'
+              await this.processSelectedItem({
+                item: child,
+                selectionType: 'all',
+                includeChildren: true
+              }, createdFolders);
+            }
           }
         }
+      } else {
+        // Copy the file
+        const parentId = await this.findOrCreateParentId(item, createdFolders);
+        console.log(`Copying file "${item.name}" to parent ${parentId}`);
+        await this.copyManager.copyFile(item.id, parentId);
+        console.log(`Copied file "${item.name}" successfully`);
       }
-    } else {
-      // Copy the file
-      const parentId = this.findParentId(item, createdFolders);
-      await this.copyManager.copyFile(item.id, parentId);
+    } catch (error) {
+      console.error(`Failed to process item "${item.name}":`, error);
+      throw error;
     }
   }
 
-  private findParentId(_item: FolderItem, createdFolders: Map<string, string>): string {
-    // Find the parent folder ID in our created folders map
-    // This is a simplified version - in a real implementation, you'd track the full hierarchy
-    // const parentPath = item.path.split('/').slice(0, -1).join('/');
+  private async findOrCreateParentId(item: FolderItem, createdFolders: Map<string, string>): Promise<string> {
+    // Get the parent path by removing the current item from the path
+    const pathParts = item.path.split('/');
+    const parentPath = pathParts.slice(0, -1).join('/');
     
-    // For now, we'll use the destination folder as parent for all items
-    // In a full implementation, you'd need to track the folder hierarchy properly
+    console.log(`Finding parent for item "${item.name}" at path "${item.path}". Parent path: "${parentPath}"`);
+    
+    // If this item is at the root level, return the destination folder
+    if (parentPath === '' || pathParts.length <= 1) {
+      console.log(`Item "${item.name}" is at root level, using destination folder`);
+      return createdFolders.get('root') || '';
+    }
+    
+    // Check if we already created the parent folder
+    const parentId = this.findFolderIdByPath(parentPath, createdFolders);
+    if (parentId) {
+      console.log(`Parent folder for path "${parentPath}" already exists with ID: ${parentId}`);
+      return parentId;
+    }
+    
+    // If parent folder doesn't exist, we need to create it
+    // First, find the parent folder information from our folder structure
+    const parentFolder = this.findFolderByPath(parentPath, this.folderStructure!);
+    if (parentFolder) {
+      console.log(`Creating parent folder "${parentFolder.name}" for path "${parentPath}"`);
+      // Recursively create parent folders if needed
+      const grandParentId = await this.findOrCreateParentId(parentFolder, createdFolders);
+      const newParentId = await this.copyManager.createFolder(parentFolder.name, grandParentId);
+      createdFolders.set(parentFolder.id, newParentId);
+      console.log(`Created parent folder "${parentFolder.name}" with ID: ${newParentId}`);
+      return newParentId;
+    }
+    
+    // Fallback to root if we can't find parent
+    console.log(`Could not find parent folder for path "${parentPath}", using root`);
     return createdFolders.get('root') || '';
+  }
+
+  private findFolderIdByPath(path: string, createdFolders: Map<string, string>): string | null {
+    // Look through our folder structure to find a folder with this path
+    if (!this.folderStructure) return null;
+    
+    const folder = this.findFolderByPath(path, this.folderStructure);
+    if (folder && createdFolders.has(folder.id)) {
+      return createdFolders.get(folder.id) || null;
+    }
+    return null;
+  }
+
+  private findFolderByPath(path: string, items: FolderItem[]): FolderItem | null {
+    for (const item of items) {
+      if (item.path === path) {
+        return item;
+      }
+      if (item.children && item.children.length > 0) {
+        const found = this.findFolderByPath(path, item.children);
+        if (found) return found;
+      }
+    }
+    return null;
   }
 }
 
