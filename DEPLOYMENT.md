@@ -1,21 +1,38 @@
-# Cloudflare Pages Deployment Instructions
+# Deployment Instructions
 
-## Environment Variables Setup
+## How Environment Variables Work
 
-To make Google OAuth work on Cloudflare Pages, you need to configure environment variables:
+This application automatically detects the correct domain at runtime for maximum flexibility:
 
-### 1. In Cloudflare Pages Dashboard:
-1. Go to your Cloudflare Pages project
-2. Navigate to Settings > Environment variables
-3. Add the following variables for **Production**:
+- **Development**: Auto-detects `http://localhost:5173` (or your dev server port)
+- **Production**: Auto-detects the actual domain where the app is deployed
+- **Environment Override**: You can optionally set `VITE_BASE_URL` to force a specific domain
+
+### Runtime Auto-Detection
+
+The app now works correctly in all scenarios:
+1. `npm run dev` (development mode) - auto-detects localhost
+2. `npm run build` then serve the `dist` folder - auto-detects server domain
+3. Deploy to any hosting platform - auto-detects deployed domain
+4. Open built files directly as static files - auto-detects file location
+
+**No environment variables are required!** The app automatically uses the correct domain.
+
+## Cloudflare Pages Deployment
+
+### 1. Optional: Set Environment Variables (Recommended for production)
+In your Cloudflare Pages project dashboard:
+1. Go to Settings > Environment variables
+2. Add the following variables for **Production** (optional but recommended):
 
 ```
-VITE_BASE_URL=https://your-app.pages.dev
 VITE_GOOGLE_CLIENT_ID=your_google_client_id
 VITE_GOOGLE_API_KEY=your_google_api_key
 ```
 
-### 2. In Google Cloud Console:
+Note: `VITE_BASE_URL` is no longer required! The app auto-detects your domain.
+
+### 2. Configure Google Cloud Console
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Navigate to APIs & Services > Credentials
 3. Edit your OAuth 2.0 client ID
@@ -23,9 +40,34 @@ VITE_GOOGLE_API_KEY=your_google_api_key
    - **Authorized JavaScript origins**: `https://your-app.pages.dev`
    - **Authorized redirect URIs**: `https://your-app.pages.dev`
 
-### 3. Testing:
-- The app should work on both `localhost:5173` (development) and your Cloudflare Pages domain
-- Check browser console for authentication debugging info
+### 3. Testing
+- The app works on `localhost:5173` (development) 
+- Works on your Cloudflare Pages domain
+- Works when served from any web server
+- Works when opened as static files
+- Check browser console for auto-detected domain info
+
+## General Deployment (Any Platform)
+
+1. Build the app: `npm run build`
+2. Deploy the `dist` folder to your hosting platform
+3. Add your domain to Google Cloud Console (see step 2 above)
+4. No environment variables needed - auto-detection handles everything!
+
+## Local Testing
+
+Test the built app locally:
+```bash
+# Build the app
+npm run build
+
+# Serve with any static server
+python3 -m http.server 8080 --directory dist
+# or
+npx serve dist
+# or
+npm run preview
+```
 
 ## Common Issues:
 

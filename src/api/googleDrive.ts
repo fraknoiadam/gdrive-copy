@@ -125,17 +125,9 @@ export class GoogleDriveAPI {
     console.log('No access token found, redirecting to OAuth...');
     
     // Get the redirect URI - use environment variable for production, fallback to current origin
-    let redirectUri = import.meta.env.VITE_BASE_URL;
+    let redirectUri = this.getBaseUrl();
     
-    if (!redirectUri) {
-      // Fallback to current origin
-      redirectUri = window.location.origin;
-      console.log('No VITE_BASE_URL found, using current origin:', redirectUri);
-    } else {
-      console.log('Using configured VITE_BASE_URL:', redirectUri);
-    }
-    
-    console.log('Final redirect URI:', redirectUri);
+    console.log('Using redirect URI:', redirectUri);
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${this.clientId}&` +
@@ -167,6 +159,22 @@ export class GoogleDriveAPI {
       token_type: params.get('token_type'),
       expires_in: params.get('expires_in')
     };
+  }
+
+  private getBaseUrl(): string {
+    // At build time, Vite will replace import.meta.env.VITE_BASE_URL with the actual value
+    // If it's not set, it will be undefined, so we fallback to window.location.origin
+    const envBaseUrl = import.meta.env.VITE_BASE_URL;
+    
+    if (envBaseUrl && envBaseUrl !== 'undefined') {
+      console.log('Using configured VITE_BASE_URL:', envBaseUrl);
+      return envBaseUrl;
+    }
+    
+    // Fallback to current origin - this works for both dev and production
+    const currentOrigin = window.location.origin;
+    console.log('No VITE_BASE_URL found, using current origin:', currentOrigin);
+    return currentOrigin;
   }
 
   isAuthenticated(): boolean {

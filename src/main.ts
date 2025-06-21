@@ -35,8 +35,8 @@ class App {
   }
 
   private updateDynamicContent(): void {
-    // Get the base URL from environment or use current origin
-    const baseUrl = import.meta.env.VITE_BASE_URL || window.location.origin;
+    // Get the base URL - prefer environment variable, fallback to current origin
+    const baseUrl = this.getBaseUrl();
     
     // Update the example domains in the instructions
     const exampleOrigin = document.getElementById('example-origin');
@@ -57,6 +57,25 @@ class App {
     
     console.log(`Application running on: ${baseUrl}`);
     console.log(`Environment VITE_BASE_URL: ${import.meta.env.VITE_BASE_URL || 'not set'}`);
+    console.log(`Window location origin: ${window.location.origin}`);
+  }
+
+  private getBaseUrl(): string {
+    // At build time, Vite will replace import.meta.env.VITE_BASE_URL with the actual value
+    // If it's not set, it will be undefined, so we fallback to window.location.origin
+    const envBaseUrl = import.meta.env.VITE_BASE_URL;
+    
+    // Check if we have a valid environment base URL that's not localhost when we're not on localhost
+    if (envBaseUrl && 
+        envBaseUrl !== 'undefined' && 
+        envBaseUrl !== 'null' &&
+        // Don't use localhost URL when we're not actually on localhost
+        !(envBaseUrl.includes('localhost') && !window.location.hostname.includes('localhost'))) {
+      return envBaseUrl;
+    }
+    
+    // Fallback to current origin - this works for both dev and production
+    return window.location.origin;
   }
 
   private async checkAuthenticationOnLoad(): Promise<void> {
