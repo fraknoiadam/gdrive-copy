@@ -113,9 +113,14 @@ export class GoogleDriveAPI {
 
     // If no token, redirect to Google OAuth
     console.log('No access token found, redirecting to OAuth...');
+    const baseUrl = import.meta.env.VITE_BASE_URL || window.location.origin;
+    // Use just the base URL without pathname to avoid issues with trailing slashes
+    const redirectUri = baseUrl;
+    console.log('Using redirect URI:', redirectUri);
+    
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${this.clientId}&` +
-      `redirect_uri=${encodeURIComponent(window.location.origin + window.location.pathname)}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `response_type=token&` +
       `scope=${encodeURIComponent('https://www.googleapis.com/auth/drive')}&` +
       `include_granted_scopes=true&` +
