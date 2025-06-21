@@ -59,7 +59,14 @@ class App {
     
     if (currentDomain) {
       currentDomain.textContent = baseUrl;
+      // Add visual debugging info
+      currentDomain.title = `ENV: ${import.meta.env.VITE_BASE_URL || 'undefined'} | ORIGIN: ${window.location.origin}`;
     }
+    
+    // Add debugging info to the page title for easy visibility
+    const debugInfo = ` [${baseUrl === 'https://gdrivecopy.durerinfo.hu' ? 'PROD' : 
+                          baseUrl.includes('localhost') ? 'DEV' : 'OTHER'}]`;
+    document.title = document.title.replace(/ \[.*\]$/, '') + debugInfo;
     
     console.log(`✅ Application running on: ${baseUrl}`);
     console.log(`Environment VITE_BASE_URL: ${import.meta.env.VITE_BASE_URL || 'not set'}`);
@@ -68,7 +75,6 @@ class App {
 
   private getBaseUrl(): string {
     // At build time, Vite will replace import.meta.env.VITE_BASE_URL with the actual value
-    // If it's not set, it will be undefined, so we fallback to window.location.origin
     const envBaseUrl = import.meta.env.VITE_BASE_URL;
     
     // Check if we have a valid environment base URL that's not localhost when we're not on localhost
@@ -80,7 +86,12 @@ class App {
       return envBaseUrl;
     }
     
-    // Fallback to current origin - this works for both dev and production
+    // Special case: if we're on the production domain, use it directly
+    if (window.location.hostname === 'gdrivecopy.durerinfo.hu') {
+      return 'https://gdrivecopy.durerinfo.hu';
+    }
+    
+    // Fallback to current origin - this works for dev and other deployments
     return window.location.origin;
   }
 

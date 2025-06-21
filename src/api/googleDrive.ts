@@ -163,7 +163,6 @@ export class GoogleDriveAPI {
 
   private getBaseUrl(): string {
     // At build time, Vite will replace import.meta.env.VITE_BASE_URL with the actual value
-    // If it's not set, it will be undefined, so we fallback to window.location.origin
     const envBaseUrl = import.meta.env.VITE_BASE_URL;
     
     console.log('🔍 Base URL Detection Debug:');
@@ -182,7 +181,14 @@ export class GoogleDriveAPI {
       return envBaseUrl;
     }
     
-    // Fallback to current origin - this works for both dev and production
+    // Special case: if we're on the production domain, use it directly
+    if (window.location.hostname === 'gdrivecopy.durerinfo.hu') {
+      const productionUrl = 'https://gdrivecopy.durerinfo.hu';
+      console.log('✅ Using hardcoded production URL:', productionUrl);
+      return productionUrl;
+    }
+    
+    // Fallback to current origin - this works for dev and other deployments
     const currentOrigin = window.location.origin;
     console.log('✅ Using current origin (fallback):', currentOrigin);
     return currentOrigin;
