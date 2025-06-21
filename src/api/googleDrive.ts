@@ -166,14 +166,25 @@ export class GoogleDriveAPI {
     // If it's not set, it will be undefined, so we fallback to window.location.origin
     const envBaseUrl = import.meta.env.VITE_BASE_URL;
     
-    if (envBaseUrl && envBaseUrl !== 'undefined') {
-      console.log('Using configured VITE_BASE_URL:', envBaseUrl);
+    console.log('🔍 Base URL Detection Debug:');
+    console.log('- import.meta.env.VITE_BASE_URL:', envBaseUrl);
+    console.log('- window.location.origin:', window.location.origin);
+    console.log('- window.location.hostname:', window.location.hostname);
+    console.log('- window.location.protocol:', window.location.protocol);
+    
+    // Check if we have a valid environment base URL that's not localhost when we're not on localhost
+    if (envBaseUrl && 
+        envBaseUrl !== 'undefined' && 
+        envBaseUrl !== 'null' &&
+        // Don't use localhost URL when we're not actually on localhost
+        !(envBaseUrl.includes('localhost') && !window.location.hostname.includes('localhost'))) {
+      console.log('✅ Using configured VITE_BASE_URL:', envBaseUrl);
       return envBaseUrl;
     }
     
     // Fallback to current origin - this works for both dev and production
     const currentOrigin = window.location.origin;
-    console.log('No VITE_BASE_URL found, using current origin:', currentOrigin);
+    console.log('✅ Using current origin (fallback):', currentOrigin);
     return currentOrigin;
   }
 

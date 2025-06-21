@@ -38,6 +38,12 @@ class App {
     // Get the base URL - prefer environment variable, fallback to current origin
     const baseUrl = this.getBaseUrl();
     
+    console.log('🔍 Main App Base URL Detection:');
+    console.log('- Detected base URL:', baseUrl);
+    console.log('- import.meta.env.VITE_BASE_URL:', import.meta.env.VITE_BASE_URL);
+    console.log('- window.location.origin:', window.location.origin);
+    console.log('- window.location.href:', window.location.href);
+    
     // Update the example domains in the instructions
     const exampleOrigin = document.getElementById('example-origin');
     const exampleRedirect = document.getElementById('example-redirect');
@@ -55,7 +61,7 @@ class App {
       currentDomain.textContent = baseUrl;
     }
     
-    console.log(`Application running on: ${baseUrl}`);
+    console.log(`✅ Application running on: ${baseUrl}`);
     console.log(`Environment VITE_BASE_URL: ${import.meta.env.VITE_BASE_URL || 'not set'}`);
     console.log(`Window location origin: ${window.location.origin}`);
   }
