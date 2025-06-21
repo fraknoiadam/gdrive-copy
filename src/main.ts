@@ -1,9 +1,9 @@
 import { GoogleDriveAPI } from './api/googleDrive.js';
-import { UI } from './ui/interface';
+import { UI } from './ui/interface.js';
 import { FolderManager } from './services/folderManager.js';
-import { CopyManager } from './services/copyManager';
-import { StatusManager } from './services/statusManager';
-import { LLMService } from './services/llmService';
+import { CopyManager } from './services/copyManager.js';
+import { StatusManager } from './services/statusManager.js';
+import { LLMService } from './services/llmService.js';
 import type { FolderItem, SelectionState, SelectedItem } from './types/index.js';
 
 class App {
@@ -29,8 +29,34 @@ class App {
 
   private init(): void {
     this.setupEventListeners();
+    this.updateDynamicContent();
     // Check if we're returning from OAuth redirect
     this.checkAuthenticationOnLoad();
+  }
+
+  private updateDynamicContent(): void {
+    // Get the base URL from environment or use current origin
+    const baseUrl = import.meta.env.VITE_BASE_URL || window.location.origin;
+    
+    // Update the example domains in the instructions
+    const exampleOrigin = document.getElementById('example-origin');
+    const exampleRedirect = document.getElementById('example-redirect');
+    const currentDomain = document.getElementById('current-domain');
+    
+    if (exampleOrigin) {
+      exampleOrigin.textContent = baseUrl;
+    }
+    
+    if (exampleRedirect) {
+      exampleRedirect.textContent = baseUrl;
+    }
+    
+    if (currentDomain) {
+      currentDomain.textContent = baseUrl;
+    }
+    
+    console.log(`Application running on: ${baseUrl}`);
+    console.log(`Environment VITE_BASE_URL: ${import.meta.env.VITE_BASE_URL || 'not set'}`);
   }
 
   private async checkAuthenticationOnLoad(): Promise<void> {
@@ -76,6 +102,9 @@ class App {
     // Load folder structure
     const loadBtn = document.getElementById('load-btn');
     loadBtn?.addEventListener('click', () => this.loadFolderStructure());
+    
+    // Add debug info for OAuth troubleshooting
+    this.addDebugInfo();
     
     // LLM integration
     const enableLlmCheckbox = document.getElementById('enable-llm') as HTMLInputElement;
@@ -421,6 +450,56 @@ class App {
       }
     }
     return null;
+  }
+
+  private addDebugInfo(): void {
+    // Add debug information to help with OAuth troubleshooting
+    const debugDiv = document.createElement('div');
+    debugDiv.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      max-width: 300px;
+      z-index: 1000;
+      display: none;
+    `;
+    debugDiv.innerHTML = `
+      <strong>Debug Info:</strong><br>
+      Current URL: ${window.location.href}<br>
+      Origin: ${window.location.origin}<br>
+      Protocol: ${window.location.protocol}<br>
+      VITE_BASE_URL: ${import.meta.env.VITE_BASE_URL || 'Not set'}
+    `;
+    
+    // Add toggle button
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = '🐛';
+    toggleBtn.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #007acc;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 1001;
+    `;
+    toggleBtn.title = 'Toggle debug info';
+    
+    toggleBtn.addEventListener('click', () => {
+      debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
+    });
+    
+    document.body.appendChild(debugDiv);
+    document.body.appendChild(toggleBtn);
   }
 }
 

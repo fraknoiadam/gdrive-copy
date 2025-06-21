@@ -123,10 +123,19 @@ export class GoogleDriveAPI {
 
     // If no token, redirect to Google OAuth
     console.log('No access token found, redirecting to OAuth...');
-    const baseUrl = import.meta.env.VITE_BASE_URL || window.location.origin;
-    // Use just the base URL without pathname to avoid issues with trailing slashes
-    const redirectUri = baseUrl;
-    console.log('Using redirect URI:', redirectUri);
+    
+    // Get the redirect URI - use environment variable for production, fallback to current origin
+    let redirectUri = import.meta.env.VITE_BASE_URL;
+    
+    if (!redirectUri) {
+      // Fallback to current origin
+      redirectUri = window.location.origin;
+      console.log('No VITE_BASE_URL found, using current origin:', redirectUri);
+    } else {
+      console.log('Using configured VITE_BASE_URL:', redirectUri);
+    }
+    
+    console.log('Final redirect URI:', redirectUri);
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${this.clientId}&` +
@@ -136,7 +145,16 @@ export class GoogleDriveAPI {
       `include_granted_scopes=true&` +
       `state=drive_access`;
 
-    console.log('Redirecting to:', authUrl);
+    console.log('Auth URL components:');
+    console.log('- Client ID:', this.clientId);
+    console.log('- Redirect URI:', redirectUri);
+    console.log('- Full Auth URL:', authUrl);
+    
+    // Check if we're in a secure context
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      console.warn('Warning: OAuth may not work properly over HTTP in production');
+    }
+    
     window.location.href = authUrl;
     return false; // Will redirect, so return false for now
   }
