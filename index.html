@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Drive Copy Tool</title>
+    <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <h1>📁 Google Drive Copy Tool</h1>
+            <p>Selectively copy folders and files between Google Drive locations</p>
+        </header>
+
+        <main class="main">
+            <!-- API Configuration -->
+            <section class="card">
+                <h2>🔑 API Configuration</h2>
+                <form id="api-form" class="form">
+                    <div class="form-group">
+                        <label for="clientId">Client ID</label>
+                        <input type="text" id="clientId" placeholder="Enter your Google API Client ID" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="apiKey">API Key</label>
+                        <input type="text" id="apiKey" placeholder="Enter your Google API Key" required>
+                    </div>
+                    
+                    <div class="instructions">
+                        <details>
+                            <summary>How to get your Google API credentials</summary>
+                            <ol>
+                                <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+                                <li>Create a new project or select an existing one</li>
+                                <li>Enable the Google Drive API</li>
+                                <li>Create OAuth 2.0 Client ID credentials</li>
+                                <li>Add <code>http://localhost:5173</code> to authorized JavaScript origins</li>
+                                <li>Copy the Client ID and API Key here</li>
+                            </ol>
+                        </details>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Source and Destination -->
+            <section class="card">
+                <h2>📂 Source and Destination</h2>
+                <form id="folders-form" class="form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="sourceFolderId">Source Folder ID</label>
+                            <input type="text" id="sourceFolderId" placeholder="Source folder ID" required>
+                            <small>Find this in the Google Drive URL</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="destinationFolderId">Destination Folder ID</label>
+                            <input type="text" id="destinationFolderId" placeholder="Destination folder ID" required>
+                            <small>Where files will be copied to</small>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Actions -->
+            <section class="card">
+                <h2>🚀 Actions</h2>
+                <div class="actions">
+                    <button id="auth-btn" class="btn btn-primary">
+                        Authenticate with Google
+                    </button>
+                    <button id="load-btn" class="btn btn-secondary" disabled>
+                        <span id="load-spinner" class="spinner hidden"></span>
+                        Load Folder Structure
+                    </button>
+                </div>
+            </section>
+
+            <!-- Folder Structure -->
+            <section id="folder-section" class="card hidden">
+                <h2>🌳 Folder Structure</h2>
+                <div class="folder-actions">
+                    <button id="select-all-btn" class="btn btn-small">Select All</button>
+                    <button id="deselect-all-btn" class="btn btn-small">Deselect All</button>
+                    <span id="selection-count" class="selection-count">0 items selected</span>
+                </div>
+                
+                <div id="folder-tree" class="folder-tree">
+                    <div class="empty-state">
+                        Click "Load Folder Structure" to browse files
+                    </div>
+                </div>
+            </section>
+
+            <!-- Copy Process -->
+            <section id="copy-section" class="card hidden">
+                <h2>📋 Copy Process</h2>
+                <button id="copy-btn" class="btn btn-success">
+                    Start Copy Process
+                </button>
+                
+                <div id="progress-container" class="progress-container hidden">
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <p id="progress-text" class="progress-text">Preparing to copy...</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Status Messages -->
+        <div id="status-container" class="status-container"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
