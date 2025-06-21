@@ -162,36 +162,11 @@ export class GoogleDriveAPI {
   }
 
   private getBaseUrl(): string {
-    // At build time, Vite will replace import.meta.env.VITE_BASE_URL with the actual value
-    const envBaseUrl = import.meta.env.VITE_BASE_URL;
+    // Fixed production URL - no dynamic detection
+    const PRODUCTION_BASE_URL = 'https://gdrivecopy.durreinfo.hu';
     
-    console.log('🔍 Base URL Detection Debug:');
-    console.log('- import.meta.env.VITE_BASE_URL:', envBaseUrl);
-    console.log('- window.location.origin:', window.location.origin);
-    console.log('- window.location.hostname:', window.location.hostname);
-    console.log('- window.location.protocol:', window.location.protocol);
-    
-    // Check if we have a valid environment base URL that's not localhost when we're not on localhost
-    if (envBaseUrl && 
-        envBaseUrl !== 'undefined' && 
-        envBaseUrl !== 'null' &&
-        // Don't use localhost URL when we're not actually on localhost
-        !(envBaseUrl.includes('localhost') && !window.location.hostname.includes('localhost'))) {
-      console.log('✅ Using configured VITE_BASE_URL:', envBaseUrl);
-      return envBaseUrl;
-    }
-    
-    // Special case: if we're on the production domain, use it directly
-    if (window.location.hostname === 'gdrivecopy.durerinfo.hu') {
-      const productionUrl = 'https://gdrivecopy.durerinfo.hu';
-      console.log('✅ Using hardcoded production URL:', productionUrl);
-      return productionUrl;
-    }
-    
-    // Fallback to current origin - this works for dev and other deployments
-    const currentOrigin = window.location.origin;
-    console.log('✅ Using current origin (fallback):', currentOrigin);
-    return currentOrigin;
+    console.log('✅ Using constant production URL:', PRODUCTION_BASE_URL);
+    return PRODUCTION_BASE_URL;
   }
 
   isAuthenticated(): boolean {

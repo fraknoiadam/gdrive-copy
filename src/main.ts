@@ -64,7 +64,7 @@ class App {
     }
     
     // Add debugging info to the page title for easy visibility
-    const debugInfo = ` [${baseUrl === 'https://gdrivecopy.durerinfo.hu' ? 'PROD' : 
+    const debugInfo = ` [${baseUrl === 'https://gdrivecopy.durreinfo.hu' ? 'PROD' : 
                           baseUrl.includes('localhost') ? 'DEV' : 'OTHER'}]`;
     document.title = document.title.replace(/ \[.*\]$/, '') + debugInfo;
     
@@ -74,25 +74,8 @@ class App {
   }
 
   private getBaseUrl(): string {
-    // At build time, Vite will replace import.meta.env.VITE_BASE_URL with the actual value
-    const envBaseUrl = import.meta.env.VITE_BASE_URL;
-    
-    // Check if we have a valid environment base URL that's not localhost when we're not on localhost
-    if (envBaseUrl && 
-        envBaseUrl !== 'undefined' && 
-        envBaseUrl !== 'null' &&
-        // Don't use localhost URL when we're not actually on localhost
-        !(envBaseUrl.includes('localhost') && !window.location.hostname.includes('localhost'))) {
-      return envBaseUrl;
-    }
-    
-    // Special case: if we're on the production domain, use it directly
-    if (window.location.hostname === 'gdrivecopy.durerinfo.hu') {
-      return 'https://gdrivecopy.durerinfo.hu';
-    }
-    
-    // Fallback to current origin - this works for dev and other deployments
-    return window.location.origin;
+    // Fixed production URL - no dynamic detection
+    return 'https://gdrivecopy.durreinfo.hu';
   }
 
   private async checkAuthenticationOnLoad(): Promise<void> {
