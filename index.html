@@ -84,6 +84,33 @@
             <!-- Folder Structure -->
             <section id="folder-section" class="card hidden">
                 <h2>🌳 Folder Structure</h2>
+                
+                <!-- LLM Integration -->
+                <div class="llm-section">
+                    <div class="form-group">
+                        <label for="enable-llm">
+                            <input type="checkbox" id="enable-llm"> 
+                            Use AI to intelligently select files
+                        </label>
+                    </div>
+                    
+                    <div id="llm-config" class="llm-config hidden">
+                        <div class="form-group">
+                            <label for="openai-key">OpenAI API Key</label>
+                            <input type="password" id="openai-key" placeholder="sk-...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="llm-prompt">AI Selection Prompt</label>
+                            <textarea id="llm-prompt" rows="3" placeholder="Example: Select all image files and documents, but exclude temporary files and system folders">Select all files and folders</textarea>
+                        </div>
+                        
+                        <button id="apply-llm-btn" class="btn btn-primary btn-small">
+                            Apply AI Selection
+                        </button>
+                    </div>
+                </div>
+                
                 <div class="folder-actions">
                     <button id="select-all-btn" class="btn btn-small">Select All</button>
                     <button id="deselect-all-btn" class="btn btn-small">Deselect All</button>
@@ -117,6 +144,6 @@
         <div id="status-container" class="status-container"></div>
     </div>
 
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

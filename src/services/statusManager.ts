@@ -1,10 +1,19 @@
+import type { StatusType } from '../types/index.js';
+
 export class StatusManager {
+  private container: HTMLElement;
+  private activeMessages: Set<HTMLElement>;
+
   constructor() {
-    this.container = document.getElementById('status-container');
+    const container = document.getElementById('status-container');
+    if (!container) {
+      throw new Error('Status container element not found');
+    }
+    this.container = container;
     this.activeMessages = new Set();
   }
 
-  show(message, type = 'info', duration = 5000) {
+  show(message: string, type: StatusType = 'info', duration: number = 5000): HTMLElement {
     const messageElement = this._createMessageElement(message, type);
     this.container.appendChild(messageElement);
     this.activeMessages.add(messageElement);
@@ -17,7 +26,7 @@ export class StatusManager {
     return messageElement;
   }
 
-  hide(messageElement) {
+  hide(messageElement: HTMLElement): void {
     if (this.activeMessages.has(messageElement)) {
       messageElement.style.animation = 'slideOut 0.3s ease-in forwards';
       setTimeout(() => {
@@ -29,13 +38,13 @@ export class StatusManager {
     }
   }
 
-  clear() {
+  clear(): void {
     this.activeMessages.forEach(message => {
       this.hide(message);
     });
   }
 
-  _createMessageElement(message, type) {
+  private _createMessageElement(message: string, type: StatusType): HTMLElement {
     const element = document.createElement('div');
     element.className = `status-message status-${type}`;
     element.textContent = message;

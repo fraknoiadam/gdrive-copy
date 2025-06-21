@@ -1,14 +1,23 @@
-export class GoogleDriveAPI {
-  constructor() {
-    this.isLoaded = false;
-    this.isInitialized = false;
-    this.accessToken = null;
-  }
+import type { DriveFile, DriveFilesResponse, TokenResponse } from '../types/index.js';
 
-  loadAPI() {
+declare global {
+  interface Window {
+    gapi: any;
+    google: any;
+  }
+}
+
+export class GoogleDriveAPI {
+  private isLoaded: boolean = false;
+  private isInitialized: boolean = false;
+  private accessToken: string | null = null;
+  private clientId: string = '';
+  // private apiKey: string = ''; // For future quota management
+
+  async loadAPI(): Promise<void> {
     return new Promise((resolve, reject) => {
       // Load both Google Identity Services and Google APIs client library
-      const promises = [];
+      const promises: Promise<void>[] = [];
       
       // Load Google Identity Services for authentication
       if (!window.google?.accounts?.id) {
@@ -28,17 +37,17 @@ export class GoogleDriveAPI {
     });
   }
 
-  loadScript(src) {
+  private loadScript(src: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = src;
-      script.onload = resolve;
+      script.onload = () => resolve();
       script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
       document.head.appendChild(script);
     });
   }
 
-  initializeGapi() {
+  private initializeGapi(): Promise<void> {
     return new Promise((resolve) => {
       if (window.gapi) {
         window.gapi.load('client', () => {
@@ -52,7 +61,7 @@ export class GoogleDriveAPI {
     });
   }
 
-  async initialize(clientId, apiKey) {
+  async initialize(clientId: string, apiKey: string): Promise<void> {
     console.log('Initializing Google API...');
     
     if (!this.isLoaded) {
@@ -76,7 +85,8 @@ export class GoogleDriveAPI {
       }
       
       this.clientId = clientId;
-      this.apiKey = apiKey;
+      // Store apiKey for potential future use (e.g., quota management)
+      // this.apiKey = apiKey;
       this.isInitialized = true;
       console.log('Google API initialization complete');
       
@@ -86,7 +96,7 @@ export class GoogleDriveAPI {
     }
   }
 
-  async authenticate() {
+  async authenticate(): Promise<boolean> {
     console.log('Starting authentication...');
     
     if (!this.isInitialized) {
@@ -131,7 +141,7 @@ export class GoogleDriveAPI {
     return false; // Will redirect, so return false for now
   }
 
-  getTokenFromUrl() {
+  private getTokenFromUrl(): TokenResponse {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash);
     return {
@@ -141,11 +151,11 @@ export class GoogleDriveAPI {
     };
   }
 
-  isAuthenticated() {
+  isAuthenticated(): boolean {
     return this.accessToken !== null;
   }
 
-  async listFiles(folderId, pageToken = null) {
+  async listFiles(folderId: string, pageToken?: string): Promise<DriveFilesResponse> {
     if (!this.accessToken) {
       throw new Error('Not authenticated. Call authenticate() first.');
     }
@@ -155,7 +165,7 @@ export class GoogleDriveAPI {
       access_token: this.accessToken
     });
 
-    const params = {
+    const params: any = {
       q: `'${folderId}' in parents and trashed=false`,
       fields: 'files(id,name,mimeType,parents),nextPageToken',
       pageSize: 1000
@@ -169,7 +179,7 @@ export class GoogleDriveAPI {
     return response.result;
   }
 
-  async copyFile(fileId, destinationFolderId) {
+  async copyFile(fileId: string, destinationFolderId: string): Promise<DriveFile> {
     if (!this.accessToken) {
       throw new Error('Not authenticated. Call authenticate() first.');
     }
@@ -188,7 +198,28 @@ export class GoogleDriveAPI {
     return response.result;
   }
 
-  isFolder(mimeType) {
+  async createFolder(name: string, parentFolderId: string): Promise<DriveFile> {
+    if (!this.accessToken) {
+      throw new Error('Not authenticated. Call authenticate() first.');
+    }
+
+    // Set the access token for API calls
+    window.gapi.client.setToken({
+      access_token: this.accessToken
+    });
+
+    const response = await window.gapi.client.drive.files.create({
+      resource: {
+        name: name,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentFolderId]
+      }
+    });
+    
+    return response.result;
+  }
+
+  isFolder(mimeType: string): boolean {
     return mimeType === 'application/vnd.google-apps.folder';
   }
 }
