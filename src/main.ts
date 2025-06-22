@@ -4,6 +4,7 @@ import { FolderManager } from './services/folderManager.js';
 import { CopyManager } from './services/copyManager';
 import { StatusManager } from './services/statusManager';
 import { LLMService } from './services/llmService';
+import { getBaseURL, getCurrentDomain, getEnvironmentType } from './utils/util.js';
 import type { FolderItem, SelectionState, SelectedItem } from './types/index.js';
 
 class App {
@@ -28,9 +29,84 @@ class App {
   }
 
   private init(): void {
+    console.log('🔄 Initializing app...');
+    
+    // Update dynamic content first to replace "...loading" placeholders
+    this.updateDynamicContent();
     this.setupEventListeners();
     // Check if we're returning from OAuth redirect
     this.checkAuthenticationOnLoad();
+    
+    console.log('✅ App initialization completed');
+  }
+
+  private updateDynamicContent(): void {
+    try {
+      const baseUrl = getBaseURL();
+      const domain = getCurrentDomain();
+      const envType = getEnvironmentType();
+      
+      console.log(`🚀 Application initialized:`);
+      console.log(`  - Base URL: ${baseUrl}`);
+      console.log(`  - Domain: ${domain}`);
+      console.log(`  - Environment: ${envType}`);
+      
+      // Update page title with environment type
+      document.title = `Google Drive Copy Tool [${envType}]`;
+      
+      // Update specific elements by ID
+      const exampleOrigin = document.getElementById('example-origin');
+      const exampleRedirect = document.getElementById('example-redirect');
+      const currentDomain = document.getElementById('current-domain');
+      
+      if (exampleOrigin) {
+        exampleOrigin.textContent = baseUrl;
+        console.log('✅ Updated example-origin:', baseUrl);
+      } else {
+        console.warn('⚠️ Element #example-origin not found');
+      }
+      
+      if (exampleRedirect) {
+        exampleRedirect.textContent = baseUrl;
+        console.log('✅ Updated example-redirect:', baseUrl);
+      } else {
+        console.warn('⚠️ Element #example-redirect not found');
+      }
+      
+      if (currentDomain) {
+        currentDomain.textContent = baseUrl;
+        currentDomain.title = `Environment: ${envType} | Domain: ${domain}`;
+        console.log('✅ Updated current-domain:', baseUrl);
+      } else {
+        console.warn('⚠️ Element #current-domain not found');
+      }
+      
+      console.log('✅ Dynamic content update completed successfully');
+      
+      // Update initialization status
+      const initStatus = document.getElementById('init-status');
+      if (initStatus) {
+        initStatus.textContent = 'Ready';
+        initStatus.style.color = 'green';
+      }
+      
+    } catch (error) {
+      console.error('❌ Error updating dynamic content:', error);
+      
+      // Try to show error in the status elements if they exist
+      const currentDomain = document.getElementById('current-domain');
+      const initStatus = document.getElementById('init-status');
+      
+      if (currentDomain) {
+        currentDomain.textContent = 'Error loading URL';
+        currentDomain.style.color = 'red';
+      }
+      
+      if (initStatus) {
+        initStatus.textContent = 'Error during initialization';
+        initStatus.style.color = 'red';
+      }
+    }
   }
 
   private async checkAuthenticationOnLoad(): Promise<void> {

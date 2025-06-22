@@ -23,7 +23,8 @@ A modern web application for selectively copying folders and files between Googl
    - Create a new project or select an existing one
    - Enable the Google Drive API
    - Create OAuth 2.0 Client ID credentials
-   - Add `http://localhost:5173` to authorized JavaScript origins
+   - Add your development URL (e.g., `http://localhost:5173`) to authorized JavaScript origins
+   - The app will automatically detect your current URL and port
    - Copy the Client ID and API Key
 
 3. **Run the development server:**
@@ -32,7 +33,8 @@ A modern web application for selectively copying folders and files between Googl
    ```
 
 4. **Open your browser:**
-   - Navigate to `http://localhost:5173`
+   - Navigate to the URL shown in the terminal (usually `http://localhost:5173`)
+   - The app will automatically detect the correct base URL including port
    - Enter your Google API credentials
    - Authenticate and start copying files!
 

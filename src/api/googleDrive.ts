@@ -1,4 +1,5 @@
 import type { DriveFile, DriveFilesResponse, TokenResponse } from '../types/index.js';
+import { getBaseURL } from '../utils/util.js';
 
 declare global {
   interface Window {
@@ -123,9 +124,7 @@ export class GoogleDriveAPI {
 
     // If no token, redirect to Google OAuth
     console.log('No access token found, redirecting to OAuth...');
-    const baseUrl = import.meta.env.VITE_BASE_URL || window.location.origin;
-    // Use just the base URL without pathname to avoid issues with trailing slashes
-    const redirectUri = baseUrl;
+    const redirectUri = getBaseURL();
     console.log('Using redirect URI:', redirectUri);
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
