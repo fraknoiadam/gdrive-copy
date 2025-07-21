@@ -48,6 +48,45 @@ export class GoogleDriveAPI {
     });
   }
 
+  /**
+   * Formats Google API errors to provide more detailed error messages
+   */
+  private formatApiError(error: any): string {
+    console.error('Google API Error:', error);
+    
+    // Check if it's a Google API error with structured error information
+    if (error?.result?.error) {
+      const apiError = error.result.error;
+      let message = `Error ${apiError.code}: ${apiError.message}`;
+      
+      // Add specific error reasons if available
+      if (apiError.errors && apiError.errors.length > 0) {
+        const reasons = apiError.errors.map((err: any) => err.reason || err.message).join(', ');
+        message += ` (${reasons})`;
+      }
+      
+      return message;
+    }
+    
+    // Check if it's a response with error status
+    if (error?.status && error?.statusText) {
+      return `HTTP ${error.status}: ${error.statusText}`;
+    }
+    
+    // Check if error has a message property
+    if (error?.message) {
+      return error.message;
+    }
+    
+    // Check if error is a string
+    if (typeof error === 'string') {
+      return error;
+    }
+    
+    // Fallback for unknown error formats
+    return `Unknown error: ${JSON.stringify(error)}`;
+  }
+
   private initializeGapi(): Promise<void> {
     return new Promise((resolve) => {
       if (window.gapi) {
@@ -92,8 +131,9 @@ export class GoogleDriveAPI {
       console.log('Google API initialization complete');
       
     } catch (error) {
-      console.error('Failed to initialize Google API:', error);
-      throw error;
+      const errorMessage = this.formatApiError(error);
+      console.error('Failed to initialize Google API:', errorMessage);
+      throw new Error(`Failed to initialize Google API: ${errorMessage}`);
     }
   }
 
@@ -159,23 +199,30 @@ export class GoogleDriveAPI {
       throw new Error('Not authenticated. Call authenticate() first.');
     }
 
-    // Set the access token for API calls
-    window.gapi.client.setToken({
-      access_token: this.accessToken
-    });
+    try {
+      // Set the access token for API calls
+      window.gapi.client.setToken({
+        access_token: this.accessToken
+      });
 
-    const params: any = {
-      q: `'${folderId}' in parents and trashed=false`,
-      fields: 'files(id,name,mimeType,parents),nextPageToken',
-      pageSize: 1000
-    };
+      const params: any = {
+        q: `'${folderId}' in parents and trashed=false`,
+        fields: 'files(id,name,mimeType,parents),nextPageToken',
+        pageSize: 1000,
+        includeItemsFromAllDrives: true, // Required for shared drives
+        supportsAllDrives: true // Required for shared drives
+      };
 
-    if (pageToken) {
-      params.pageToken = pageToken;
+      if (pageToken) {
+        params.pageToken = pageToken;
+      }
+
+      const response = await window.gapi.client.drive.files.list(params);
+      return response.result;
+    } catch (error) {
+      const errorMessage = this.formatApiError(error);
+      throw new Error(`Failed to list files: ${errorMessage}`);
     }
-
-    const response = await window.gapi.client.drive.files.list(params);
-    return response.result;
   }
 
   async copyFile(fileId: string, destinationFolderId: string): Promise<DriveFile> {
@@ -183,18 +230,24 @@ export class GoogleDriveAPI {
       throw new Error('Not authenticated. Call authenticate() first.');
     }
 
-    // Set the access token for API calls
-    window.gapi.client.setToken({
-      access_token: this.accessToken
-    });
+    try {
+      // Set the access token for API calls
+      window.gapi.client.setToken({
+        access_token: this.accessToken
+      });
 
-    const response = await window.gapi.client.drive.files.copy({
-      fileId: fileId,
-      resource: {
-        parents: [destinationFolderId]
-      }
-    });
-    return response.result;
+      const response = await window.gapi.client.drive.files.copy({
+        fileId: fileId,
+        resource: {
+          parents: [destinationFolderId]
+        },
+        supportsAllDrives: true // Required for shared drives
+      });
+      return response.result;
+    } catch (error) {
+      const errorMessage = this.formatApiError(error);
+      throw new Error(`Failed to copy file: ${errorMessage}`);
+    }
   }
 
   async createFolder(name: string, parentFolderId: string): Promise<DriveFile> {
@@ -202,20 +255,26 @@ export class GoogleDriveAPI {
       throw new Error('Not authenticated. Call authenticate() first.');
     }
 
-    // Set the access token for API calls
-    window.gapi.client.setToken({
-      access_token: this.accessToken
-    });
+    try {
+      // Set the access token for API calls
+      window.gapi.client.setToken({
+        access_token: this.accessToken
+      });
 
-    const response = await window.gapi.client.drive.files.create({
-      resource: {
-        name: name,
-        mimeType: 'application/vnd.google-apps.folder',
-        parents: [parentFolderId]
-      }
-    });
-    
-    return response.result;
+      const response = await window.gapi.client.drive.files.create({
+        resource: {
+          name: name,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: [parentFolderId]
+        },
+        supportsAllDrives: true // Required for shared drives
+      });
+      
+      return response.result;
+    } catch (error) {
+      const errorMessage = this.formatApiError(error);
+      throw new Error(`Failed to create folder: ${errorMessage}`);
+    }
   }
 
   isFolder(mimeType: string): boolean {
