@@ -475,3 +475,65 @@ body {
   resize: vertical;
   min-height: 4rem;
 }
+
+/* File Renaming Section */
+.rename-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: var(--gray-50);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--gray-200);
+}
+
+.rename-section h3 {
+  margin-bottom: 0.5rem;
+  color: var(--gray-700);
+  font-size: 1.1rem;
+}
+
+.rename-help {
+  margin-bottom: 1rem;
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.rename-examples {
+  margin-top: 1rem;
+}
+
+.rename-examples summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.rename-examples summary:hover {
+  color: var(--primary-hover);
+}
+
+.examples-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.example {
+  padding: 1rem;
+  background-color: var(--white);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--gray-200);
+  font-size: 0.9rem;
+}
+
+.example strong {
+  color: var(--gray-700);
+}
+
+.example code {
+  background-color: var(--gray-100);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+}

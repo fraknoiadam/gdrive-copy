@@ -7,9 +7,18 @@ A modern web application for selectively copying folders and files between Googl
 - 🔐 Google OAuth2 authentication
 - 📁 Browse and navigate folder structures
 - ✅ Select specific files and folders to copy
+- 🏷️ **Regex-based file renaming during copy** (NEW!)
+- 🤖 AI-powered file selection with OpenAI integration
 - 📊 Real-time progress tracking
 - 🎨 Clean, minimalistic UI
 - 📱 Responsive design
+
+### File Renaming Feature
+- Use regular expressions to rename files during copy
+- Perfect for changing years, adding prefixes, or bulk renaming
+- Safe defaults that preserve original names
+- Comprehensive examples and documentation included
+- Works for both files and folders
 
 ## Setup
 
@@ -45,7 +54,13 @@ A modern web application for selectively copying folders and files between Googl
 3. Enter source and destination folder IDs from Google Drive URLs
 4. Click "Load Folder Structure" to browse files
 5. Select the files/folders you want to copy
-6. Click "Start Copy Process" to begin copying
+6. **Configure file renaming (optional):**
+   - In the Copy Process section, set regex patterns for renaming
+   - Default pattern `(.*)` → `$1` copies without renaming
+   - Example: Change 2024 to 2025 with `(.*)2024(.*)` → `$12025$2`
+7. Click "Start Copy Process" to begin copying
+
+For detailed renaming examples and documentation, see [RENAME_FEATURE.md](RENAME_FEATURE.md).
 
 ## Building for Production
 

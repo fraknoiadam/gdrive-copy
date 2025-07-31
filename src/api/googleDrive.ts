@@ -225,7 +225,7 @@ export class GoogleDriveAPI {
     }
   }
 
-  async copyFile(fileId: string, destinationFolderId: string): Promise<DriveFile> {
+  async copyFile(fileId: string, destinationFolderId: string, newName?: string): Promise<DriveFile> {
     if (!this.accessToken) {
       throw new Error('Not authenticated. Call authenticate() first.');
     }
@@ -236,11 +236,18 @@ export class GoogleDriveAPI {
         access_token: this.accessToken
       });
 
+      const resource: any = {
+        parents: [destinationFolderId]
+      };
+
+      // If a new name is provided, include it in the resource
+      if (newName) {
+        resource.name = newName;
+      }
+
       const response = await window.gapi.client.drive.files.copy({
         fileId: fileId,
-        resource: {
-          parents: [destinationFolderId]
-        },
+        resource: resource,
         supportsAllDrives: true // Required for shared drives
       });
       return response.result;

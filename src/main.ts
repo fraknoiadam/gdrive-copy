@@ -1,7 +1,7 @@
 import { GoogleDriveAPI } from './api/googleDrive.js';
 import { UI } from './ui/interface';
 import { FolderManager } from './services/folderManager.js';
-import { CopyManager } from './services/copyManager';
+import { CopyManager, type RenamePattern } from './services/copyManager';
 import { StatusManager } from './services/statusManager';
 import { LLMService } from './services/llmService';
 import { getBaseURL, getCurrentDomain, getEnvironmentType } from './utils/util.js';
@@ -351,6 +351,10 @@ class App {
       return;
     }
 
+    // Get rename pattern from UI
+    const renamePattern = this.ui.getRenamePattern();
+    console.log('Using rename pattern:', renamePattern);
+
     this.ui.showProgressContainer();
 
     try {
@@ -384,7 +388,7 @@ class App {
       
       for (const selectedItem of selectedItems) {
         console.log(`Processing item: ${selectedItem.item.name} (${selectedItem.item.id}) at path: ${selectedItem.item.path}`);
-        await this.processSelectedItemWithProgress(selectedItem, createdFolders, progressTracker);
+        await this.processSelectedItemWithProgress(selectedItem, createdFolders, progressTracker, renamePattern);
       }
 
       this.statusManager.show(`Successfully processed ${progressTracker.processedItems} items`, 'success');
@@ -398,16 +402,17 @@ class App {
   private async processSelectedItemWithProgress(
     selectedItem: SelectedItem, 
     createdFolders: Map<string, string>, 
-    progressTracker: { updateProgress: (increment?: number) => void }
+    progressTracker: { updateProgress: (increment?: number) => void },
+    renamePattern: RenamePattern
   ): Promise<void> {
     const { item, includeChildren } = selectedItem;
     
     try {
       if (item.type === 'folder') {
         // Create the folder in the destination
-        const parentId = await this.findOrCreateParentId(item, createdFolders);
+        const parentId = await this.findOrCreateParentId(item, createdFolders, renamePattern);
         console.log(`Creating folder "${item.name}" in parent ${parentId}`);
-        const newFolderId = await this.copyManager.createFolder(item.name, parentId);
+        const newFolderId = await this.copyManager.createFolder(item.name, parentId, renamePattern);
         createdFolders.set(item.id, newFolderId);
         console.log(`Created folder "${item.name}" with ID: ${newFolderId}`);
         progressTracker.updateProgress(1); // Count the folder itself
@@ -420,14 +425,14 @@ class App {
               item: child,
               selectionType: 'all',
               includeChildren: true
-            }, createdFolders, progressTracker);
+            }, createdFolders, progressTracker, renamePattern);
           }
         }
       } else {
         // Copy the file
-        const parentId = await this.findOrCreateParentId(item, createdFolders);
+        const parentId = await this.findOrCreateParentId(item, createdFolders, renamePattern);
         console.log(`Copying file "${item.name}" to parent ${parentId}`);
-        await this.copyManager.copyFile(item.id, parentId);
+        await this.copyManager.copyFile(item.id, parentId, item.name, renamePattern);
         console.log(`Copied file "${item.name}" successfully`);
         progressTracker.updateProgress(1); // Count the file
       }
@@ -437,7 +442,7 @@ class App {
     }
   }
 
-  private async findOrCreateParentId(item: FolderItem, createdFolders: Map<string, string>): Promise<string> {
+  private async findOrCreateParentId(item: FolderItem, createdFolders: Map<string, string>, renamePattern: RenamePattern): Promise<string> {
     // Get the parent path by removing the current item from the path
     const pathParts = item.path.split('/');
     const parentPath = pathParts.slice(0, -1).join('/');
@@ -463,8 +468,8 @@ class App {
     if (parentFolder) {
       console.log(`Creating parent folder "${parentFolder.name}" for path "${parentPath}"`);
       // Recursively create parent folders if needed
-      const grandParentId = await this.findOrCreateParentId(parentFolder, createdFolders);
-      const newParentId = await this.copyManager.createFolder(parentFolder.name, grandParentId);
+      const grandParentId = await this.findOrCreateParentId(parentFolder, createdFolders, renamePattern);
+      const newParentId = await this.copyManager.createFolder(parentFolder.name, grandParentId, renamePattern);
       createdFolders.set(parentFolder.id, newParentId);
       console.log(`Created parent folder "${parentFolder.name}" with ID: ${newParentId}`);
       return newParentId;

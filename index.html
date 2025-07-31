@@ -129,6 +129,50 @@
             <!-- Copy Process -->
             <section id="copy-section" class="card hidden">
                 <h2>📋 Copy Process</h2>
+                
+                <!-- File Renaming Section -->
+                <div class="rename-section">
+                    <h3>🏷️ File Renaming (Optional)</h3>
+                    <p class="rename-help">Use regex patterns to rename files during copy. Default pattern copies files without renaming.</p>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rename-from">Rename From (Regex Pattern)</label>
+                            <input type="text" id="rename-from" placeholder="(.*)" value="(.*)">
+                            <small>Regular expression to match filename parts</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rename-to">Rename To (Replacement)</label>
+                            <input type="text" id="rename-to" placeholder="$1" value="$1">
+                            <small>Replacement pattern using captured groups ($1, $2, etc.)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="rename-examples">
+                        <details>
+                            <summary>📝 Renaming Examples</summary>
+                            <div class="examples-grid">
+                                <div class="example">
+                                    <strong>Change year from 2024 to 2025:</strong><br>
+                                    From: <code>(.*)2024(.*)</code><br>
+                                    To: <code>$12025$2</code>
+                                </div>
+                                <div class="example">
+                                    <strong>Add prefix:</strong><br>
+                                    From: <code>(.*)</code><br>
+                                    To: <code>Copy_$1</code>
+                                </div>
+                                <div class="example">
+                                    <strong>Remove spaces:</strong><br>
+                                    From: <code>(.*)\s+(.*)</code><br>
+                                    To: <code>$1_$2</code>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+                
                 <button id="copy-btn" class="btn btn-success">
                     Start Copy Process
                 </button>

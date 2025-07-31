@@ -11,6 +11,8 @@ export class UI {
   private progressFill: HTMLElement;
   private progressText: HTMLElement;
   private selectionCount: HTMLElement;
+  private renameFromInput: HTMLInputElement;
+  private renameToInput: HTMLInputElement;
 
   constructor() {
     this.folderTreeContainer = this.getElement('folder-tree');
@@ -22,6 +24,8 @@ export class UI {
     this.progressFill = this.getElement('progress-fill');
     this.progressText = this.getElement('progress-text');
     this.selectionCount = this.getElement('selection-count');
+    this.renameFromInput = this.getElement('rename-from') as HTMLInputElement;
+    this.renameToInput = this.getElement('rename-to') as HTMLInputElement;
   }
 
   private getElement(id: string): HTMLElement {
@@ -149,5 +153,12 @@ export class UI {
         this._updateSelectionIndicator(element, state);
       }
     });
+  }
+
+  getRenamePattern(): { from: string; to: string } {
+    return {
+      from: this.renameFromInput.value || '(.*)',
+      to: this.renameToInput.value || '$1'
+    };
   }
 }
