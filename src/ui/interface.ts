@@ -69,20 +69,26 @@ export class UI {
     this.selectionCount.textContent = `${count} items selected`;
   }
 
-  renderFolderTree(items: FolderItem[], onSelectionChange: (itemId: string) => void, _folderManager: FolderManager): void {
+  renderFolderTree(items: FolderItem[], onSelectionChange: (itemId: string) => void, folderManager: FolderManager): void {
     this.folderTreeContainer.innerHTML = '';
     // Store reference for updates if needed in the future
     // this.folderManager = folderManager;
-    this._renderItems(items, this.folderTreeContainer, 0, onSelectionChange);
+    this._renderItems(items, this.folderTreeContainer, 0, onSelectionChange, null);
+    // After initial render, update visibility based on current selection states
+    this.updateVisibilityBySelection(folderManager);
   }
 
-  private _renderItems(items: FolderItem[], container: HTMLElement, level: number, onSelectionChange: (itemId: string) => void): void {
+  private _renderItems(items: FolderItem[], container: HTMLElement, level: number, onSelectionChange: (itemId: string) => void, parentId: string | null): void {
     items.forEach(item => {
       const itemElement = this._createItemElement(item, level, onSelectionChange);
+      // annotate hierarchy metadata for visibility control
+      itemElement.dataset.level = String(level);
+      itemElement.dataset.parentId = parentId ?? '';
+      itemElement.dataset.type = item.type;
       container.appendChild(itemElement);
 
       if (item.children && item.children.length > 0) {
-        this._renderItems(item.children, container, level + 1, onSelectionChange);
+        this._renderItems(item.children, container, level + 1, onSelectionChange, item.id);
       }
     });
   }
@@ -92,6 +98,9 @@ export class UI {
     itemDiv.className = 'folder-item';
     itemDiv.style.paddingLeft = `${level * 1.5 + 0.75}rem`;
     itemDiv.dataset.itemId = item.id;
+    // annotate type & level for quick checks
+    itemDiv.dataset.type = item.type;
+    itemDiv.dataset.level = String(level);
 
     // Selection indicator (not a checkbox, but a visual indicator)
     const selectionIndicator = document.createElement('span');
@@ -153,6 +162,41 @@ export class UI {
         this._updateSelectionIndicator(element, state);
       }
     });
+
+    // Also update visibility (collapse children of deselected folders)
+    this.updateVisibilityBySelection(folderManager);
+  }
+
+  // Hide descendants of folders that are deselected (or folder-only)
+  private updateVisibilityBySelection(folderManager: FolderManager): void {
+    const rows = Array.from(this.folderTreeContainer.querySelectorAll('.folder-item')) as HTMLElement[];
+    const collapseLevels: number[] = [];
+
+    for (const row of rows) {
+      const level = parseInt(row.dataset.level || '0', 10);
+
+      // Exit any collapsed scopes that we've moved out of
+      while (collapseLevels.length > 0 && level <= collapseLevels[collapseLevels.length - 1]) {
+        collapseLevels.pop();
+      }
+
+      // Determine if current row should be hidden due to an active collapsed ancestor
+      if (collapseLevels.length > 0 && level > collapseLevels[collapseLevels.length - 1]) {
+        row.classList.add('hidden');
+      } else {
+        row.classList.remove('hidden');
+      }
+
+      // If this row is a folder with state none or folder-only, collapse its descendants
+      const id = row.dataset.itemId;
+      const type = row.dataset.type;
+      if (type === 'folder' && id) {
+        const state = folderManager.getSelectionState(id);
+        if (state === 'none' || state === 'folder-only') {
+          collapseLevels.push(level);
+        }
+      }
+    }
   }
 
   getRenamePattern(): { from: string; to: string } {
