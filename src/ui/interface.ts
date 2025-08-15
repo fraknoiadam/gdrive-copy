@@ -1,4 +1,4 @@
-import type { FolderItem } from '../types/index.js';
+import type { FolderItem, RenameSettings } from '../types/index.js';
 import type { FolderManager } from '../services/folderManager.js';
 
 export class UI {
@@ -11,8 +11,10 @@ export class UI {
   private progressFill: HTMLElement;
   private progressText: HTMLElement;
   private selectionCount: HTMLElement;
-  private renameFromInput: HTMLInputElement;
-  private renameToInput: HTMLInputElement;
+  private renameMappingsContainer: HTMLElement;
+  private addRenameMappingBtn: HTMLElement;
+  private enableRenameCheckbox: HTMLInputElement;
+  private renameConfig: HTMLElement;
 
   constructor() {
     this.folderTreeContainer = this.getElement('folder-tree');
@@ -24,8 +26,12 @@ export class UI {
     this.progressFill = this.getElement('progress-fill');
     this.progressText = this.getElement('progress-text');
     this.selectionCount = this.getElement('selection-count');
-    this.renameFromInput = this.getElement('rename-from') as HTMLInputElement;
-    this.renameToInput = this.getElement('rename-to') as HTMLInputElement;
+    this.renameMappingsContainer = this.getElement('rename-mappings');
+    this.addRenameMappingBtn = this.getElement('add-rename-mapping');
+    this.enableRenameCheckbox = this.getElement('enable-rename') as HTMLInputElement;
+    this.renameConfig = this.getElement('rename-config');
+    
+    this.setupRenameEventListeners();
   }
 
   private getElement(id: string): HTMLElement {
@@ -199,10 +205,87 @@ export class UI {
     }
   }
 
-  getRenamePattern(): { from: string; to: string } {
-    return {
-      from: this.renameFromInput.value || '(.*)',
-      to: this.renameToInput.value || '$1'
-    };
+  private setupRenameEventListeners(): void {
+    // Toggle rename config visibility
+    this.enableRenameCheckbox.addEventListener('change', () => {
+      if (this.enableRenameCheckbox.checked) {
+        this.renameConfig.classList.remove('hidden');
+        this.addDefaultRenameMapping();
+      } else {
+        this.renameConfig.classList.add('hidden');
+      }
+    });
+
+    // Add new rename mapping
+    this.addRenameMappingBtn.addEventListener('click', () => {
+      this.addRenameMapping('', '');
+    });
+  }
+
+  private addDefaultRenameMapping(): void {
+    // Only add if no mappings exist
+    if (this.renameMappingsContainer.children.length === 0) {
+      this.addRenameMapping('', '');
+    }
+  }
+
+  private addRenameMapping(from: string = '', to: string = ''): void {
+    const mappingDiv = document.createElement('div');
+    mappingDiv.className = 'rename-mapping';
+
+    const fromInput = document.createElement('input');
+    fromInput.type = 'text';
+    fromInput.placeholder = 'Text to find';
+    fromInput.value = from;
+
+    const arrow = document.createElement('span');
+    arrow.className = 'rename-mapping-arrow';
+    arrow.textContent = '→';
+
+    const toInput = document.createElement('input');
+    toInput.type = 'text';
+    toInput.placeholder = 'Replace with';
+    toInput.value = to;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-mapping-btn';
+    removeBtn.textContent = '✕';
+    removeBtn.type = 'button';
+    removeBtn.addEventListener('click', () => {
+      mappingDiv.remove();
+    });
+
+    mappingDiv.appendChild(fromInput);
+    mappingDiv.appendChild(arrow);
+    mappingDiv.appendChild(toInput);
+    mappingDiv.appendChild(removeBtn);
+
+    this.renameMappingsContainer.appendChild(mappingDiv);
+  }
+
+  getRenameSettings(): RenameSettings {
+    const mappings: Array<{from: string, to: string}> = [];
+    
+    if (this.enableRenameCheckbox.checked) {
+      const mappingElements = this.renameMappingsContainer.querySelectorAll('.rename-mapping');
+      
+      mappingElements.forEach(mappingEl => {
+        const fromInput = mappingEl.querySelector('input[placeholder="Text to find"]') as HTMLInputElement;
+        const toInput = mappingEl.querySelector('input[placeholder="Replace with"]') as HTMLInputElement;
+        
+        if (fromInput && toInput) {
+          const from = fromInput.value.trim();
+          const to = toInput.value.trim();
+          
+          // Include mappings even if 'from' is empty (for prefix/suffix operations)
+          // Only exclude if both are empty
+          if (from !== '' || to !== '') {
+            mappings.push({ from, to });
+          }
+        }
+      });
+    }
+    
+    return { mappings };
   }
 }

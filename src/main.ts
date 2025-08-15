@@ -1,11 +1,11 @@
 import { GoogleDriveAPI } from './api/googleDrive.js';
 import { UI } from './ui/interface';
 import { FolderManager } from './services/folderManager.js';
-import { CopyManager, type RenamePattern } from './services/copyManager';
+import { CopyManager } from './services/copyManager';
 import { StatusManager } from './services/statusManager';
 import { LLMService } from './services/llmService';
 import { getBaseURL, getCurrentDomain, getEnvironmentType } from './utils/util.js';
-import type { FolderItem, SelectionState, SelectedItem } from './types/index.js';
+import type { FolderItem, SelectionState, SelectedItem, RenameSettings } from './types/index.js';
 
 class App {
   private api: GoogleDriveAPI;
@@ -351,9 +351,9 @@ class App {
       return;
     }
 
-    // Get rename pattern from UI
-    const renamePattern = this.ui.getRenamePattern();
-    console.log('Using rename pattern:', renamePattern);
+    // Get rename settings from UI
+    const renameSettings = this.ui.getRenameSettings();
+    console.log('Using rename settings:', renameSettings);
 
     this.ui.showProgressContainer();
 
@@ -388,7 +388,7 @@ class App {
       
       for (const selectedItem of selectedItems) {
         console.log(`Processing item: ${selectedItem.item.name} (${selectedItem.item.id}) at path: ${selectedItem.item.path}`);
-        await this.processSelectedItemWithProgress(selectedItem, createdFolders, progressTracker, renamePattern);
+        await this.processSelectedItemWithProgress(selectedItem, createdFolders, progressTracker, renameSettings);
       }
 
       this.statusManager.show(`Successfully processed ${progressTracker.processedItems} items`, 'success');
@@ -403,16 +403,16 @@ class App {
     selectedItem: SelectedItem, 
     createdFolders: Map<string, string>, 
     progressTracker: { updateProgress: (increment?: number) => void },
-    renamePattern: RenamePattern
+    renameSettings: RenameSettings
   ): Promise<void> {
     const { item, includeChildren } = selectedItem;
     
     try {
       if (item.type === 'folder') {
         // Create the folder in the destination
-        const parentId = await this.findOrCreateParentId(item, createdFolders, renamePattern);
+        const parentId = await this.findOrCreateParentId(item, createdFolders, renameSettings);
         console.log(`Creating folder "${item.name}" in parent ${parentId}`);
-        const newFolderId = await this.copyManager.createFolder(item.name, parentId, renamePattern);
+        const newFolderId = await this.copyManager.createFolder(item.name, parentId, renameSettings);
         createdFolders.set(item.id, newFolderId);
         console.log(`Created folder "${item.name}" with ID: ${newFolderId}`);
         progressTracker.updateProgress(1); // Count the folder itself
@@ -425,14 +425,14 @@ class App {
               item: child,
               selectionType: 'all',
               includeChildren: true
-            }, createdFolders, progressTracker, renamePattern);
+            }, createdFolders, progressTracker, renameSettings);
           }
         }
       } else {
         // Copy the file
-        const parentId = await this.findOrCreateParentId(item, createdFolders, renamePattern);
+        const parentId = await this.findOrCreateParentId(item, createdFolders, renameSettings);
         console.log(`Copying file "${item.name}" to parent ${parentId}`);
-        await this.copyManager.copyFile(item.id, parentId, item.name, renamePattern);
+        await this.copyManager.copyFile(item.id, parentId, item.name, renameSettings);
         console.log(`Copied file "${item.name}" successfully`);
         progressTracker.updateProgress(1); // Count the file
       }
@@ -442,7 +442,7 @@ class App {
     }
   }
 
-  private async findOrCreateParentId(item: FolderItem, createdFolders: Map<string, string>, renamePattern: RenamePattern): Promise<string> {
+  private async findOrCreateParentId(item: FolderItem, createdFolders: Map<string, string>, renameSettings: RenameSettings): Promise<string> {
     // Get the parent path by removing the current item from the path
     const pathParts = item.path.split('/');
     const parentPath = pathParts.slice(0, -1).join('/');
