@@ -468,8 +468,8 @@ class App {
     if (parentFolder) {
       console.log(`Creating parent folder "${parentFolder.name}" for path "${parentPath}"`);
       // Recursively create parent folders if needed
-      const grandParentId = await this.findOrCreateParentId(parentFolder, createdFolders, renamePattern);
-      const newParentId = await this.copyManager.createFolder(parentFolder.name, grandParentId, renamePattern);
+      const grandParentId = await this.findOrCreateParentId(parentFolder, createdFolders, renameSettings);
+      const newParentId = await this.copyManager.createFolder(parentFolder.name, grandParentId, renameSettings);
       createdFolders.set(parentFolder.id, newParentId);
       console.log(`Created parent folder "${parentFolder.name}" with ID: ${newParentId}`);
       return newParentId;
