@@ -537,3 +537,62 @@ body {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.85rem;
 }
+
+/* Rename Mappings */
+.rename-mappings {
+  margin-bottom: 1rem;
+}
+
+.rename-mapping {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius);
+}
+
+.rename-mapping input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+}
+
+.rename-mapping input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.1);
+}
+
+.rename-mapping-arrow {
+  color: var(--gray-400);
+  font-weight: bold;
+  margin: 0 0.25rem;
+}
+
+.remove-mapping-btn {
+  background: var(--error);
+  color: var(--white);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.remove-mapping-btn:hover {
+  background-color: #dc2626;
+}
+
+.rename-config {
+  margin-top: 1rem;
+}
+
+.rename-config.hidden {
+  display: none;
+}

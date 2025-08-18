@@ -48,3 +48,13 @@ export interface CopyResult {
   result?: any;
   error?: string;
 }
+
+// Renaming types
+export interface RenameMapping {
+  from: string;
+  to: string;
+}
+
+export interface RenameSettings {
+  mappings: RenameMapping[];
+}
